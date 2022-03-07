@@ -1,4 +1,4 @@
-with open('../data/hostfile.txt') as f:
+with open('../data/pre/hostfile.txt') as f:
     lines = f.readlines()
 
 domains = []
@@ -10,5 +10,5 @@ for line in lines:
     if len(parts) > 1:
         domains.append(parts[1].strip())
 
-with open('../data/domains.txt', 'w') as f:
+with open('../data/pre/domains.txt', 'w') as f:
     f.writelines("%s\n" % d for d in domains)

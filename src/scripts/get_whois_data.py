@@ -3,12 +3,12 @@ import whois
 
 from time import sleep
 
-with open('../data/domains.txt') as f:
+with open('../data/pre/domains.txt') as f:
     domains = f.readlines()
 
 total_num = len(domains)
 
-with open('../data/whois_data.txt', 'a') as f:
+with open('../data/pre/whois_data.txt', 'a') as f:
     on_domain = 1
     for domain in domains:
         if on_domain < 959:

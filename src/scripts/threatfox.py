@@ -8,6 +8,7 @@ from config import (
     confidence_tagging
 )
 
+
 class ThreatFoxHandler():
     tf_data = []
 

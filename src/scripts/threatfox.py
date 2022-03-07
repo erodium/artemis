@@ -67,3 +67,4 @@ class ThreatFoxHandler():
             if level >= tag_minvalue:
                 confidence_tag = tag
         return {'name': confidence_tag}
+#%%

@@ -8,6 +8,7 @@ from config import (
     confidence_tagging
 )
 
+
 class ThreatFoxHandler():
     tf_data = []
 
@@ -67,4 +68,3 @@ class ThreatFoxHandler():
             if level >= tag_minvalue:
                 confidence_tag = tag
         return {'name': confidence_tag}
-#%%

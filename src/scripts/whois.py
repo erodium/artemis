@@ -4,7 +4,7 @@ import whois
 from time import sleep
 
 
-def get_whois_data(src_file=None, dest_file=None):
+def get_whois_data(src_file=None, dest_file=None, start_at=1):
     """
     :param src_file: path for the list of domain names
     :param dest_file: path to place whois data file
@@ -19,16 +19,19 @@ def get_whois_data(src_file=None, dest_file=None):
     total_num = len(domains)
     print(f"Total domains: {total_num}")
 
-    with open(dest_file, 'w') as f:
+    if start_at == 1:
+        file_attribute = 'w' # overwrite the file if it exists
+    else:
+        file_attribute = 'a' # add to the file if it exists
+
+    with open(dest_file, file_attribute) as f:
         on_domain = 1
         for domain in domains:
             ### This was used if the process stopped before gettting to the end.
             ###   It allows to pick back up at the end. Change the with open attribute to 'a'
-            """
-            if on_domain < 959:
+            if on_domain < start_at:
                 on_domain += 1
                 continue
-            """
             print(on_domain, end="; ")
             try:
                 domain = domain.strip()
@@ -49,5 +52,5 @@ def get_whois_data(src_file=None, dest_file=None):
                 f.write(json.dumps({full_domain:"error"}))
             finally:
                 on_domain += 1
-                sleep(6)
+                sleep(4)
 

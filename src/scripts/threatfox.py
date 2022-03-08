@@ -5,11 +5,12 @@ import requests
 from config import (
     type_mapping,
     threatfox_api_url as fetch_url,
-    confidence_tagging
+    confidence_tagging,
+    lookback_days
 )
 
 
-class ThreatFoxHandler():
+class ThreatFoxHandler:
     tf_data = []
 
     def fetch_threatfox(self, time: int) -> dict:
@@ -59,7 +60,7 @@ class ThreatFoxHandler():
             attributes.append(att.copy())
         return attributes
 
-    def confidence_level_to_tag(level: int) -> str:
+    def confidence_level_to_tag(self, level: int) -> str:
         """
             map a confidence Level 0-100 to misp:confidence Taxonomy
         """
@@ -68,3 +69,35 @@ class ThreatFoxHandler():
             if level >= tag_minvalue:
                 confidence_tag = tag
         return {'name': confidence_tag}
+
+
+def parse_threatfox_hostfile(
+        src_file='../data/pre/tf_hostfile.txt',
+        dest_file='../data/pre/tf_domains.txt'):
+    with open(src_file) as f:
+        lines = f.readlines()
+
+    domains = []
+
+    for line in lines:
+        if line[0] == "#":
+            continue
+        parts = line.strip().split()
+        if len(parts) > 1:
+            domains.append(parts[1].strip())
+
+    with open(dest_file, 'w') as f:
+        f.writelines("%s\n" % d for d in domains)
+
+
+def get_threatfox_data(destfile=None):
+    tf = ThreatFoxHandler()
+    tf_data = tf.fetch_threatfox(lookback_days)
+    if destfile:
+        filename = destfile
+    else:
+        filename = f'../data/pre/tf_data_{datetime.now().strftime("%Y%m%d-%H%M%S")}.json'
+    import os
+    print(os.getcwd())
+    with open(filename, 'w') as f:
+        f.writelines(json.dumps(tf_data))

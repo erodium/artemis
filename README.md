@@ -52,18 +52,18 @@ Project Organization
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
 
-Adding DVC to the repo
+### Adding DVC to the repo
 
-Initialised DVC (dvc init)
-Added data folder to dvc (dvc add data)
-Added remote tracking storage to the shared google drive/folder ( dvc remote add -d storage ####)
-pushed the "raw" data to dvc remote
-To use it:
+- Initialised DVC (dvc init)
+- Added data folder to dvc (dvc add data)
+- Added remote tracking storage to the shared google drive/folder ( dvc remote add -d storage ####)
+- Pushed the "raw" data to dvc remote
+## To use it:
 
-install dvc (pip install dvc)
-Run: dvc pull
-Authenticate to google drive if asked
-Check if data folder is there and has the raw subflder with files in it at least)
+- install dvc (pip install dvc)
+- Run: dvc pull
+- Authenticate to google drive if asked
+- Check if data folder is there and has the raw subflder with files in it at least)
 
 --------
 

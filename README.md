@@ -51,6 +51,13 @@ Project Organization
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
+Data Generation
+--------
+![](docs/artemis.png)
+
+* [Threatfox malicious hostfile](https://threatfox.abuse.ch/downloads/hostfile/)
+* [Majestic Million CSV](https://downloads.majestic.com/majestic_million.csv)
+
 
 ### Adding DVC to the repo
 

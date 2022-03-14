@@ -5,6 +5,7 @@ setuptools~=58.0.4
 python-whois
 dvc
 pandas
+jupyter
 
 # external requirements
 click

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from artemis_data import load_datafile
+from artemis_data import load_whois_datafile, load_entropy_datafile
 
 whois_data_file_suffix = '_whois_data.txt'
 entropy_data_file_suffix = '_entropy_data.txt'
@@ -26,13 +26,17 @@ def main(input_filepath, output_filepath):
     #TODO: Finish data processing script
 
     logger.info(f"Loading benign data from {input_filepath}.")
-    benign_domain_df = load_datafile(f"{input_filepath}/benign{whois_data_file_suffix}")
-    benign_domain_df['malicious'] = False
+    benign_domain_df = load_whois_datafile(f"{input_filepath}/benign{whois_data_file_suffix}")
+    benign_entropy_df = load_entropy_datafile(f"{input_filepath}/benign{entropy_data_file_suffix}")
+    benign_merged_df = pd.merge(benign_domain_df, benign_entropy_df, on='domain')
+    benign_merged_df['malicious'] = False
     logger.info(f"Loading malicious data from {input_filepath}.")
-    malicious_domain_df = load_datafile(f"{input_filepath}/malicious{whois_data_file_suffix}")
-    malicious_domain_df['malicious'] = True
-    logger.info("Merging malicious and benign data files.")
-    final_df = pd.concat([benign_domain_df, malicious_domain_df])
+    malicious_domain_df = load_whois_datafile(f"{input_filepath}/malicious{whois_data_file_suffix}")
+    malicious_entropy_df = load_entropy_datafile(f"{input_filepath}/malicious{entropy_data_file_suffix}")
+    malicious_merged_df = pd.merge(malicious_domain_df, malicious_entropy_df, on='domain')
+    malicious_merged_df['malicious'] = True
+    logger.info("Concatenating malicious and benign data files.")
+    final_df = pd.concat([benign_merged_df, malicious_merged_df])
     outfile = f"{output_filepath}/{final_data_filename}"
     final_df.to_csv(outfile, index=False)
     logger.info(f"Wrote merged datafile to {outfile}.")

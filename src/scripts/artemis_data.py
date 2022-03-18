@@ -33,7 +33,7 @@ def process(row):
     return new_row
 
 
-def load_datafile(filepath):
+def load_whois_datafile(filepath):
     records = []
     with open(filepath) as f:  # open file
         for line in f.read().splitlines():  # for each line
@@ -44,4 +44,14 @@ def load_datafile(filepath):
                 proc_vals = process(new_vals)  # process the line
                 new_obj.update(proc_vals)
                 records.append(new_obj)
+    return pd.DataFrame(records)
+
+
+def load_entropy_datafile(filepath):
+    records = []
+    with open(filepath) as f:
+        for line in f.read().splitlines():
+            obj = json.loads(line)
+            new_obj = {"domain": list(obj.keys())[0], "entropy":list(obj.values())[0]}
+            records.append(new_obj)
     return pd.DataFrame(records)

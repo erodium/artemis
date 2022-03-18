@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import click
 import logging
-import os
 import pandas as pd
 import sys
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from artemis_data import load_whois_datafile, load_entropy_datafile
+from artemis_data import load_datafile
 
 whois_data_file_suffix = '_whois_data.txt'
 entropy_data_file_suffix = '_entropy_data.txt'
@@ -26,14 +25,18 @@ def main(input_filepath, output_filepath):
     #TODO: Finish data processing script
 
     logger.info(f"Loading benign data from {input_filepath}.")
-    benign_domain_df = load_whois_datafile(f"{input_filepath}/benign{whois_data_file_suffix}")
-    benign_entropy_df = load_entropy_datafile(f"{input_filepath}/benign{entropy_data_file_suffix}")
+    benign_domain_df = load_datafile(f"{input_filepath}/benign{whois_data_file_suffix}", filetype='whois')
+    benign_entropy_df = load_datafile(f"{input_filepath}/benign{entropy_data_file_suffix}", filetype='entropy')
+    benign_ip_df = load_datafile(f"{input_filepath}/benign{ip_data_file_suffix}", filetype='ip')
     benign_merged_df = pd.merge(benign_domain_df, benign_entropy_df, on='domain')
+    benign_merged_df = pd.merge(benign_merged_df, benign_ip_df, on='domain')
     benign_merged_df['malicious'] = False
     logger.info(f"Loading malicious data from {input_filepath}.")
-    malicious_domain_df = load_whois_datafile(f"{input_filepath}/malicious{whois_data_file_suffix}")
-    malicious_entropy_df = load_entropy_datafile(f"{input_filepath}/malicious{entropy_data_file_suffix}")
+    malicious_domain_df = load_datafile(f"{input_filepath}/malicious{whois_data_file_suffix}", filetype='whois')
+    malicious_entropy_df = load_datafile(f"{input_filepath}/malicious{entropy_data_file_suffix}", filetype='entropy')
     malicious_merged_df = pd.merge(malicious_domain_df, malicious_entropy_df, on='domain')
+    malicious_ip_df = load_datafile(f"{input_filepath}/malicious{ip_data_file_suffix}", filetype='ip')
+    malicious_merged_df = pd.merge(malicious_merged_df, malicious_ip_df, on='domain')
     malicious_merged_df['malicious'] = True
     logger.info("Concatenating malicious and benign data files.")
     final_df = pd.concat([benign_merged_df, malicious_merged_df])

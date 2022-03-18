@@ -51,6 +51,13 @@ Project Organization
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
+
+Creating the datafiles
+--------
+* Simple method of creating datafiles: 
+  * python src/scripts/make_dataset.py data/raw data/processed
+
+
 Data Generation
 --------
 ![](docs/artemis.png)

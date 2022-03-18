@@ -9,6 +9,10 @@ from dotenv import find_dotenv, load_dotenv
 
 from artemis_data import load_datafile
 
+whois_data_file_suffix = '_whois_data.txt'
+entropy_data_file_suffix = '_entropy_data.txt'
+ip_data_file_suffix = '_ip_data.txt'
+final_data_filename = 'whois_data.csv'
 
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True), required=False, )
@@ -20,14 +24,12 @@ def main(input_filepath, output_filepath):
     logger = logging.getLogger(__name__)
     logger.info('Making final data set from raw data.')
     #TODO: Finish data processing script
-    benign_data_filename = 'benign_whois_data.txt'
-    malicious_data_filename = 'malicious_whois_data.txt'
-    final_data_filename = 'whois_data.csv'
+
     logger.info(f"Loading benign data from {input_filepath}.")
-    benign_domain_df = load_datafile(f"{input_filepath}/{benign_data_filename}")
+    benign_domain_df = load_datafile(f"{input_filepath}/benign{whois_data_file_suffix}")
     benign_domain_df['malicious'] = False
     logger.info(f"Loading malicious data from {input_filepath}.")
-    malicious_domain_df = load_datafile(f"{input_filepath}/{malicious_data_filename}")
+    malicious_domain_df = load_datafile(f"{input_filepath}/malicious{whois_data_file_suffix}")
     malicious_domain_df['malicious'] = True
     logger.info("Merging malicious and benign data files.")
     final_df = pd.concat([benign_domain_df, malicious_domain_df])

@@ -63,11 +63,50 @@ def change_entropy_data(obj):
 
 
 def change_ip_data(obj):
-    if len(list(obj.values()))>2:
+    if len(list(obj.values())) > 2:
         print(obj)
     domain = list(obj.keys())[0]
-    new_obj = { "domain": domain }
+    new_obj = {"domain": domain}
     for rec_type, records in obj[domain].items():
         for k, v in records.items():
             new_obj[f"dns_rec_{rec_type.lower()}_{k.lower()}"] = v.lower()
     return new_obj
+
+
+country_map = {
+    "MALAYSIA":                  "MY",
+    "BRAZIL":                    "BR",
+    "FINLAND":                   "FI",
+    "SPAIN":                     "ES",
+    "GERMANY":                   "DE",
+    "ROK":                       "KR",
+    "KOREA (THE REPUBLIC OF)":   "KR",
+    "RUSSIAN FEDERATION (THE)":  "RU",
+    "AUSTRIA":                   "AT",
+    "NETHERLANDS (THE)":         "NL",
+    "PORTUGAL":                  "PT",
+    "ARMENIA":                   "AM"
+}
+
+def clean_country(country):
+    c = country.upper()
+    if len(country) > 2:
+        if ";" in c:
+            print(c)
+        elif "UNITED STATES" in c:
+            c = "US"
+        elif "REDACTED" in c:
+            c = "XX" # country ws redacted
+        elif c in country_map.keys():
+            c = country_map[c]
+        else:
+            print(country)
+    return c
+
+
+def clean_data(df):
+    clean_df = df.copy(deep=True)  # make a copy of the df
+    clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
+    clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
+    clean_df['country'] = clean_df.country.apply(clean_country)
+    return clean_df

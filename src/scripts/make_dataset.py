@@ -1,20 +1,40 @@
 # -*- coding: utf-8 -*-
 import click
 import logging
+import os
+import pandas as pd
+import sys
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
+from artemis_data import load_datafile
+
 
 @click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
+@click.argument('input_filepath', type=click.Path(exists=True), required=False, )
 @click.argument('output_filepath', type=click.Path())
 def main(input_filepath, output_filepath):
     """ Runs data processing scripts to turn raw data from (../data/raw) into
         cleaned data ready to be analyzed (saved in ../data./processed).
     """
     logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
+    logger.info('Making final data set from raw data.')
     #TODO: Finish data processing script
+    benign_data_filename = 'benign_whois_data.txt'
+    malicious_data_filename = 'malicious_whois_data.txt'
+    final_data_filename = 'whois_data.csv'
+    logger.info(f"Loading benign data from {input_filepath}.")
+    benign_domain_df = load_datafile(f"{input_filepath}/{benign_data_filename}")
+    benign_domain_df['malicious'] = False
+    logger.info(f"Loading malicious data from {input_filepath}.")
+    malicious_domain_df = load_datafile(f"{input_filepath}/{malicious_data_filename}")
+    malicious_domain_df['malicious'] = True
+    logger.info("Merging malicious and benign data files.")
+    final_df = pd.concat([benign_domain_df, malicious_domain_df])
+    outfile = f"{output_filepath}/{final_data_filename}"
+    final_df.to_csv(outfile, index=False)
+    logger.info(f"Wrote merged datafile to {outfile}.")
+    sys.exit()
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -22,7 +42,7 @@ if __name__ == '__main__':
 
     # not used in this stub but often useful for finding various files
     project_dir = Path(__file__).resolve().parents[2]
-
+    print(project_dir)
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())

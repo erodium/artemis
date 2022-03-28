@@ -4,6 +4,7 @@ import json
 
 creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
 updated_date_cols = ['updated_date', 'updated_date_1', 'updated_date_2', 'updated_date_3', 'updated_date_4']
+bad_countries = []
 
 
 def process(row):
@@ -96,19 +97,19 @@ def clean_country(country):
     c = country.upper()
     if len(country) > 2:
         if ";" in c:
-            print(c)
+            parts = c.split(';')
+            if parts[0] == parts[1]:
+                c = parts[0]
+            else:
+                bad_countries.append(c)
         elif "UNITED STATES" in c:
             c = "US"
         elif "REDACTED" in c or "PERSONAL DATA" in c:
             c = "XX"  # country ws redacted
         elif c in country_map.keys():
             c = country_map[c]
-        elif ";" in c:
-            parts = c.split(';')
-            if parts[0] == parts[1]:
-                c = parts[0]
         else:
-            print(country)
+            bad_countries.append(c)
     return c
 
 
@@ -152,6 +153,7 @@ def clean_data(df):
     clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
     clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
+    print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
     for col in creation_date_cols + updated_date_cols:
         clean_df[col] = clean_df[col].apply(clean_dates)
     clean_df['days_between_creations'] = pd.NA

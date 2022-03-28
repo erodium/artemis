@@ -128,7 +128,7 @@ def clean_dates(dt):
     return x
 
 
-def calc_days_since_creation(d):
+def calc_days_since(d):
     if not pd.isna(d):
         td = (pd.Timestamp.today().date() - d).days
         return td
@@ -143,8 +143,22 @@ def set_creation_date(row):
     else:
         latest_creation_date = pd.NaT
         days_between_creations = pd.NA
-    row['creation_date'] = latest_creation_date
+    row[creation_date_cols[0]] = latest_creation_date
     row['days_between_creations'] = days_between_creations
+    return row
+
+
+def set_updated_date(row):
+    mask = row[updated_date_cols].notnull()
+    if mask.any():
+        latest_update_date = row[updated_date_cols][mask].max()
+        first_update_date = row[updated_date_cols][mask].min()
+        days_between_updates = (latest_update_date - first_update_date).days
+    else:
+        latest_update_date = pd.NaT
+        days_between_updates = pd.NA
+    row[updated_date_cols[0]] = latest_update_date
+    row['days_between_updates'] = days_between_updates
     return row
 
 
@@ -159,7 +173,13 @@ def clean_data(df):
     clean_df['days_between_creations'] = pd.NA
     clean_df = clean_df.apply(set_creation_date, axis=1)
     creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
-    creation_date_cols_to_drop.remove('creation_date')
+    creation_date_cols_to_drop.remove(creation_date_cols[0])
     clean_df = clean_df.drop(columns=creation_date_cols_to_drop)
-    clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since_creation)
+    clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since)
+    clean_df['days_between_updates'] = pd.NA
+    clean_df = clean_df.apply(set_updated_date, axis=1)
+    updated_date_cols_to_drop = copy.deepcopy(updated_date_cols)
+    updated_date_cols_to_drop.remove(updated_date_cols[0])
+    clean_df = clean_df.drop(columns=updated_date_cols_to_drop)
+    clean_df['days_since_update'] = clean_df.updated_date.apply(calc_days_since)
     return clean_df

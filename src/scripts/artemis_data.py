@@ -197,4 +197,7 @@ def clean_data(df):
     expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
     expiration_date_cols_to_drop.remove(expiration_date_cols[0])
     clean_df = clean_df.drop(columns=expiration_date_cols_to_drop)
+    clean_df['days_until_expiration'] = clean_df.expiration_date.apply(
+                        lambda dt: pd.NA if pd.isna(dt) else (dt - pd.Timestamp.today().date()).days
+    )
     return clean_df

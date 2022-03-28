@@ -13,6 +13,7 @@ entropy_data_file_suffix = '_entropy_data.txt'
 ip_data_file_suffix = '_ip_data.txt'
 final_data_filename = 'whois_data.csv'
 
+
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True), required=False, )
 @click.argument('output_filepath', type=click.Path())
@@ -22,7 +23,7 @@ def main(input_filepath, output_filepath):
     """
     logger = logging.getLogger(__name__)
     logger.info('Making final data set from raw data.')
-    #TODO: Finish data processing script
+    # TODO: Finish data processing script
 
     logger.info(f"Loading benign data from {input_filepath}.")
     benign_domain_df = load_datafile(f"{input_filepath}/benign{whois_data_file_suffix}", filetype='whois')
@@ -46,6 +47,7 @@ def main(input_filepath, output_filepath):
     final_df.to_csv(outfile, index=False)
     logger.info(f"Wrote merged datafile to {outfile}.")
     sys.exit()
+
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

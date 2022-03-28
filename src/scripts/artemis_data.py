@@ -2,6 +2,8 @@ import copy
 import pandas as pd
 import json
 
+creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
+
 
 def process(row):
     new_row = {'redacted': False}  # flag whether row has redacted data
@@ -74,19 +76,20 @@ def change_ip_data(obj):
 
 
 country_map = {
-    "MALAYSIA":                  "MY",
-    "BRAZIL":                    "BR",
-    "FINLAND":                   "FI",
-    "SPAIN":                     "ES",
-    "GERMANY":                   "DE",
-    "ROK":                       "KR",
-    "KOREA (THE REPUBLIC OF)":   "KR",
-    "RUSSIAN FEDERATION (THE)":  "RU",
-    "AUSTRIA":                   "AT",
-    "NETHERLANDS (THE)":         "NL",
-    "PORTUGAL":                  "PT",
-    "ARMENIA":                   "AM"
+    "MALAYSIA": "MY",
+    "BRAZIL": "BR",
+    "FINLAND": "FI",
+    "SPAIN": "ES",
+    "GERMANY": "DE",
+    "ROK": "KR",
+    "KOREA (THE REPUBLIC OF)": "KR",
+    "RUSSIAN FEDERATION (THE)": "RU",
+    "AUSTRIA": "AT",
+    "NETHERLANDS (THE)": "NL",
+    "PORTUGAL": "PT",
+    "ARMENIA": "AM"
 }
+
 
 def clean_country(country):
     c = country.upper()
@@ -95,13 +98,52 @@ def clean_country(country):
             print(c)
         elif "UNITED STATES" in c:
             c = "US"
-        elif "REDACTED" in c:
-            c = "XX" # country ws redacted
+        elif "REDACTED" in c or "PERSONAL DATA" in c:
+            c = "XX"  # country ws redacted
         elif c in country_map.keys():
             c = country_map[c]
+        elif ";" in c:
+            parts = c.split(';')
+            if parts[0] == parts[1]:
+                c = parts[0]
         else:
             print(country)
     return c
+
+
+def clean_dates(dt):
+    if pd.isna(dt) or dt == "not defined":
+        return pd.NA
+    if dt == "before 19950101":
+        dt = "19950101"
+    elif dt == "before Aug-1996":
+        dt = "19960801"
+    elif isinstance(dt, float):
+        print(dt)
+    elif "T" in dt:
+        dt = dt.split("T")[0]
+    x = pd.to_datetime(dt, errors='coerce').date()
+    return x
+
+
+def calc_days_since_creation(d):
+    if not pd.isna(d):
+        td = (pd.Timestamp.today().date() - d).days
+        return td
+
+
+def set_creation_date(row):
+    mask = row[creation_date_cols].notnull()
+    if mask.any():
+        latest_creation_date = row[creation_date_cols][mask].max()
+        first_creation_date = row[creation_date_cols][mask].min()
+        days_between_creations = (latest_creation_date - first_creation_date).days
+    else:
+        latest_creation_date = pd.NaT
+        days_between_creations = pd.NA
+    row['creation_date'] = latest_creation_date
+    row['days_between_creations'] = days_between_creations
+    return row
 
 
 def clean_data(df):
@@ -109,4 +151,12 @@ def clean_data(df):
     clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
     clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
+    for col in creation_date_cols:
+        clean_df[col] = clean_df[col].apply(clean_dates)
+    clean_df['days_between_creations'] = pd.NA
+    clean_df = clean_df.apply(set_creation_date, axis=1)
+    creation_date_cols_to_drop = creation_date_cols.copy()
+    creation_date_cols_to_drop.remove('creation_date')
+    clean_df = clean_df.drop(columns=creation_date_cols_to_drop)
+    clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since_creation)
     return clean_df

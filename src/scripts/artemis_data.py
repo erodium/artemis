@@ -3,6 +3,7 @@ import pandas as pd
 import json
 
 creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
+updated_date_cols = ['updated_date', 'updated_date_1', 'updated_date_2', 'updated_date_3', 'updated_date_4']
 
 
 def process(row):
@@ -151,11 +152,11 @@ def clean_data(df):
     clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
     clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
-    for col in creation_date_cols:
+    for col in creation_date_cols + updated_date_cols:
         clean_df[col] = clean_df[col].apply(clean_dates)
     clean_df['days_between_creations'] = pd.NA
     clean_df = clean_df.apply(set_creation_date, axis=1)
-    creation_date_cols_to_drop = creation_date_cols.copy()
+    creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
     creation_date_cols_to_drop.remove('creation_date')
     clean_df = clean_df.drop(columns=creation_date_cols_to_drop)
     clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since_creation)

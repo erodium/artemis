@@ -4,6 +4,7 @@ import json
 
 creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
 updated_date_cols = ['updated_date', 'updated_date_1', 'updated_date_2', 'updated_date_3', 'updated_date_4']
+expiration_date_cols = ['expiration_date', 'expiration_date_1', 'expiration_date_2']
 bad_countries = []
 
 
@@ -168,7 +169,7 @@ def clean_data(df):
     clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
     print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
-    for col in creation_date_cols + updated_date_cols:
+    for col in creation_date_cols + updated_date_cols + expiration_date_cols:
         clean_df[col] = clean_df[col].apply(clean_dates)
     clean_df['days_between_creations'] = pd.NA
     clean_df = clean_df.apply(set_creation_date, axis=1)

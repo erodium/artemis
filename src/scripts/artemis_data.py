@@ -163,6 +163,16 @@ def set_updated_date(row):
     return row
 
 
+def set_expiration_date(row):
+    mask = row[expiration_date_cols].notnull()
+    if mask.any():
+        latest_expiration_date = row[expiration_date_cols][mask].max()
+    else:
+        latest_expiration_date = pd.NaT
+    row[expiration_date_cols[0]] = latest_expiration_date
+    return row
+
+
 def clean_data(df):
     clean_df = df.copy(deep=True)  # make a copy of the df
     clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
@@ -183,4 +193,8 @@ def clean_data(df):
     updated_date_cols_to_drop.remove(updated_date_cols[0])
     clean_df = clean_df.drop(columns=updated_date_cols_to_drop)
     clean_df['days_since_update'] = clean_df.updated_date.apply(calc_days_since)
+    clean_df = clean_df.apply(set_expiration_date, axis=1)
+    expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
+    expiration_date_cols_to_drop.remove(expiration_date_cols[0])
+    clean_df = clean_df.drop(columns=expiration_date_cols_to_drop)
     return clean_df

@@ -2,6 +2,11 @@ import copy
 import pandas as pd
 import json
 
+creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
+updated_date_cols = ['updated_date', 'updated_date_1', 'updated_date_2', 'updated_date_3', 'updated_date_4']
+expiration_date_cols = ['expiration_date', 'expiration_date_1', 'expiration_date_2']
+bad_countries = []
+
 
 def process(row):
     new_row = {'redacted': False}  # flag whether row has redacted data
@@ -63,11 +68,136 @@ def change_entropy_data(obj):
 
 
 def change_ip_data(obj):
-    if len(list(obj.values()))>2:
+    if len(list(obj.values())) > 2:
         print(obj)
     domain = list(obj.keys())[0]
-    new_obj = { "domain": domain }
+    new_obj = {"domain": domain}
     for rec_type, records in obj[domain].items():
         for k, v in records.items():
             new_obj[f"dns_rec_{rec_type.lower()}_{k.lower()}"] = v.lower()
     return new_obj
+
+
+country_map = {
+    "MALAYSIA": "MY",
+    "BRAZIL": "BR",
+    "FINLAND": "FI",
+    "SPAIN": "ES",
+    "GERMANY": "DE",
+    "ROK": "KR",
+    "KOREA (THE REPUBLIC OF)": "KR",
+    "RUSSIAN FEDERATION (THE)": "RU",
+    "AUSTRIA": "AT",
+    "NETHERLANDS (THE)": "NL",
+    "PORTUGAL": "PT",
+    "ARMENIA": "AM"
+}
+
+
+def clean_country(country):
+    c = country.upper()
+    if len(country) > 2:
+        if ";" in c:
+            parts = c.split(';')
+            if parts[0] == parts[1]:
+                c = parts[0]
+            else:
+                bad_countries.append(c)
+        elif "UNITED STATES" in c:
+            c = "US"
+        elif "REDACTED" in c or "PERSONAL DATA" in c:
+            c = "XX"  # country ws redacted
+        elif c in country_map.keys():
+            c = country_map[c]
+        else:
+            bad_countries.append(c)
+    return c
+
+
+def clean_dates(dt):
+    if pd.isna(dt) or dt == "not defined":
+        return pd.NA
+    if dt == "before 19950101":
+        dt = "19950101"
+    elif dt == "before Aug-1996":
+        dt = "19960801"
+    elif isinstance(dt, float):
+        print(dt)
+    elif "T" in dt:
+        dt = dt.split("T")[0]
+    x = pd.to_datetime(dt, errors='coerce').date()
+    return x
+
+
+def calc_days_since(d):
+    if not pd.isna(d):
+        td = (pd.Timestamp.today().date() - d).days
+        return td
+
+
+def set_creation_date(row):
+    mask = row[creation_date_cols].notnull()
+    if mask.any():
+        latest_creation_date = row[creation_date_cols][mask].max()
+        first_creation_date = row[creation_date_cols][mask].min()
+        days_between_creations = (latest_creation_date - first_creation_date).days
+    else:
+        latest_creation_date = pd.NaT
+        days_between_creations = pd.NA
+    row[creation_date_cols[0]] = latest_creation_date
+    row['days_between_creations'] = days_between_creations
+    return row
+
+
+def set_updated_date(row):
+    mask = row[updated_date_cols].notnull()
+    if mask.any():
+        latest_update_date = row[updated_date_cols][mask].max()
+        first_update_date = row[updated_date_cols][mask].min()
+        days_between_updates = (latest_update_date - first_update_date).days
+    else:
+        latest_update_date = pd.NaT
+        days_between_updates = pd.NA
+    row[updated_date_cols[0]] = latest_update_date
+    row['days_between_updates'] = days_between_updates
+    return row
+
+
+def set_expiration_date(row):
+    mask = row[expiration_date_cols].notnull()
+    if mask.any():
+        latest_expiration_date = row[expiration_date_cols][mask].max()
+    else:
+        latest_expiration_date = pd.NaT
+    row[expiration_date_cols[0]] = latest_expiration_date
+    return row
+
+
+def clean_data(df):
+    clean_df = df.copy(deep=True)  # make a copy of the df
+    clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
+    clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
+    clean_df['country'] = clean_df.country.apply(clean_country)
+    print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
+    for col in creation_date_cols + updated_date_cols + expiration_date_cols:
+        clean_df[col] = clean_df[col].apply(clean_dates)
+    clean_df['days_between_creations'] = pd.NA
+    clean_df = clean_df.apply(set_creation_date, axis=1)
+    creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
+    creation_date_cols_to_drop.remove(creation_date_cols[0])
+    clean_df = clean_df.drop(columns=creation_date_cols_to_drop)
+    clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since)
+    clean_df['days_between_updates'] = pd.NA
+    clean_df = clean_df.apply(set_updated_date, axis=1)
+    updated_date_cols_to_drop = copy.deepcopy(updated_date_cols)
+    updated_date_cols_to_drop.remove(updated_date_cols[0])
+    clean_df = clean_df.drop(columns=updated_date_cols_to_drop)
+    clean_df['days_since_update'] = clean_df.updated_date.apply(calc_days_since)
+    clean_df = clean_df.apply(set_expiration_date, axis=1)
+    expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
+    expiration_date_cols_to_drop.remove(expiration_date_cols[0])
+    clean_df = clean_df.drop(columns=expiration_date_cols_to_drop)
+    clean_df['days_until_expiration'] = clean_df.expiration_date.apply(
+                        lambda dt: pd.NA if pd.isna(dt) else (dt - pd.Timestamp.today().date()).days
+    )
+    return clean_df

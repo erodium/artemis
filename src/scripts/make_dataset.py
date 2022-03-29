@@ -6,12 +6,13 @@ import sys
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
-from artemis_data import load_datafile
+from artemis_data import load_datafile, clean_data
 
 whois_data_file_suffix = '_whois_data.txt'
 entropy_data_file_suffix = '_entropy_data.txt'
 ip_data_file_suffix = '_ip_data.txt'
 final_data_filename = 'whois_data.csv'
+
 
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True), required=False, )
@@ -22,7 +23,7 @@ def main(input_filepath, output_filepath):
     """
     logger = logging.getLogger(__name__)
     logger.info('Making final data set from raw data.')
-    #TODO: Finish data processing script
+    # TODO: Finish data processing script
 
     logger.info(f"Loading benign data from {input_filepath}.")
     benign_domain_df = load_datafile(f"{input_filepath}/benign{whois_data_file_suffix}", filetype='whois')
@@ -39,11 +40,14 @@ def main(input_filepath, output_filepath):
     malicious_merged_df = pd.merge(malicious_merged_df, malicious_ip_df, on='domain')
     malicious_merged_df['malicious'] = True
     logger.info("Concatenating malicious and benign data files.")
-    final_df = pd.concat([benign_merged_df, malicious_merged_df])
+    interim_df = pd.concat([benign_merged_df, malicious_merged_df])
+    logger.info("Cleaning combined dataframe.")
+    final_df = clean_data(interim_df)
     outfile = f"{output_filepath}/{final_data_filename}"
     final_df.to_csv(outfile, index=False)
     logger.info(f"Wrote merged datafile to {outfile}.")
     sys.exit()
+
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

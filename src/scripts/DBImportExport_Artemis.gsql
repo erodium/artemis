@@ -25,7 +25,7 @@ DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
 set exit_on_error = "false"
 CREATE LOADING JOB load_job_benign_whois_data FOR GRAPH Artemis {
       DEFINE FILENAME MyDataSource;
-      LOAD MyDataSource TO VERTEX DomainRecord VALUES($1, $2, $3, "True") USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO VERTEX DomainRecord VALUES($1, $2, $3,0, "True") USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
     }
 
 set exit_on_error = "true"

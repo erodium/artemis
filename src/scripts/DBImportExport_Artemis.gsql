@@ -27,10 +27,10 @@ CREATE SCHEMA_CHANGE JOB create_artemis_graph FOR GRAPH Artemis {
 }
 RUN SCHEMA_CHANGE JOB create_artemis_graph
 DROP JOB create_artemis_graph
-set exit_on_error = "false"
+
 CREATE LOADING JOB load_job_whois_data FOR GRAPH Artemis {
       DEFINE FILENAME MyDataSource;
-      LOAD MyDataSource TO VERTEX DomainRecord VALUES($1, $2, $3,0, $4) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO VERTEX DomainRecord VALUES($1, $2, $3,0, $4, _) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
     }
 
 CREATE LOADING JOB load_job_whois_data_country FOR GRAPH Artemis {
@@ -82,7 +82,7 @@ CREATE LOADING JOB load_job_whois_data_whois_server FOR GRAPH Artemis {
 
 CREATE LOADING JOB load_job_entropy FOR GRAPH Artemis {
       DEFINE FILENAME MyDataSource;
-      LOAD MyDataSource TO VERTEX DomainRecord VALUES($0, _, _, $1, _) USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO VERTEX DomainRecord VALUES($0, _, _, $1, _, _) USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
     }
 
 
@@ -420,6 +420,47 @@ CREATE QUERY tg_louvain(SET<STRING> v_type, SET<STRING> e_type, STRING wt_attr =
   END;
 }
 
+CREATE QUERY community_features_calc(/* Parameters here */) FOR GRAPH Artemis { 
+  /* Write query logic here */ 
+  
+  GroupByAccum<int community, MinAccum<DOUBLE> min_entropy, MaxAccum<Double> max_entropy,
+   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum count_malicious> @@group_entropy;
+  SumAccum<INT> @flag = 0;
+  GroupByAccum<int community, MinAccum<DOUBLE> min_entropy, MaxAccum<Double> max_entropy,
+   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum count_malicious> @@group_entropy_final;
+  
+  tmp = SELECT dr 
+  from DomainRecord:dr
+  ACCUM 
+  if dr.MaliciousFlag THEN 
+    @@group_entropy += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 1),
+    dr.@flag =1
+  ELSE
+   @@group_entropy += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 0)
+  END;
+  
+  
+  
+  
+  FOREACH item in @@group_entropy DO
+    IF item.domain_count == 1 THEN
+      t = select dr from DomainRecord:dr WHERE dr.community == item.community
+      POST-ACCUM dr.community = -1;
+    end;
+  END;
+  
+  tmp = SELECT dr 
+  from DomainRecord:dr
+  ACCUM 
+  if dr.MaliciousFlag THEN 
+    @@group_entropy_final += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 1),
+    dr.@flag =1
+  ELSE
+   @@group_entropy_final += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 0)
+  END;
+  
+  print(@@group_entropy_final);
+}
 
 
 set exit_on_error = "true"

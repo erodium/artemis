@@ -424,10 +424,10 @@ CREATE QUERY community_features_calc(/* Parameters here */) FOR GRAPH Artemis {
   /* Write query logic here */ 
   
   GroupByAccum<int community, MinAccum<DOUBLE> min_entropy, MaxAccum<Double> max_entropy,
-   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum count_malicious> @@group_entropy;
+   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum malicious_ratio> @@group_entropy;
   SumAccum<INT> @flag = 0;
   GroupByAccum<int community, MinAccum<DOUBLE> min_entropy, MaxAccum<Double> max_entropy,
-   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum count_malicious> @@group_entropy_final;
+   AvgAccum avg_entropy, SumAccum<INT> domain_count, AvgAccum malicious_ratio> @@group_entropy_final;
   
   tmp = SELECT dr 
   from DomainRecord:dr

@@ -5,7 +5,7 @@ import subprocess
 """
 Script to generate DGA domains using https://github.com/baderj/domain_generation_algorithms
 
-Usage: generate_dga_domains.py --dga_folder_root="../../../domain_generation_algorithms/" --output_file="../../data/raw/dga_data.csv"
+Usage: generate_dga_domains.py --dga_folder_root="../../../domain_generation_algorithms/" --output_file="../../data/raw/dga_dga_domain_data.csv"
 
 Todo:
 * Find a much more elegant (and likely secure) way 

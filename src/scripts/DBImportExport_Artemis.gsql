@@ -1,0 +1,115 @@
+CREATE GRAPH Artemis()
+CREATE SCHEMA_CHANGE JOB create_artemis_graph FOR GRAPH Artemis { 
+  ADD VERTEX DomainRecord(PRIMARY_ID id STRING, dnssec STRING, name STRING, entropy FLOAT, MaliciousFlag BOOL, community INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD VERTEX DomainName(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX Country(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX City(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX Emails(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX Organisation(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX Nameserver(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX Registrar(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX DomainRecordStatus(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD VERTEX WhoisServer(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+  ADD UNDIRECTED EDGE DomainRecord_DomainName(FROM DomainRecord, TO DomainName);
+  ADD UNDIRECTED EDGE Country_City(FROM Country, TO City);
+  ADD UNDIRECTED EDGE DomainRecord_Country(FROM DomainRecord, TO Country);
+  ADD UNDIRECTED EDGE DomainRecord_Emails(FROM DomainRecord, TO Emails);
+  ADD UNDIRECTED EDGE DomainRecord_Organisation(FROM DomainRecord, TO Organisation);
+  ADD UNDIRECTED EDGE DomainRecord_Nameserver(FROM DomainRecord, TO Nameserver);
+  ADD UNDIRECTED EDGE DomainRecord_Registrar(FROM DomainRecord, TO Registrar);
+  ADD UNDIRECTED EDGE DomainRecord_DomainRecordStatus(FROM DomainRecord, TO DomainRecordStatus);
+  ADD UNDIRECTED EDGE DomainRecord_WhoisServer(FROM DomainRecord, TO WhoisServer);
+  ADD UNDIRECTED EDGE DomainRecord_A_Org(FROM DomainRecord, TO Organisation);
+  ADD UNDIRECTED EDGE DomainRecord_MX_Org(FROM DomainRecord, TO Organisation);
+}
+RUN SCHEMA_CHANGE JOB create_artemis_graph
+DROP JOB create_artemis_graph
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX DomainRecord VALUES($1, $2, $3,0, $4) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_country FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Country VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_Country VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_domain_name FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX DomainName VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_DomainName VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_domain_status FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX DomainRecordStatus VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_DomainRecordStatus VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_emails FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Emails VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_Emails VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_name_servers FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Nameserver VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_Nameserver VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_registrar FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Registrar VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_Registrar VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_whois_data_whois_server FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX WhoisServer VALUES($2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_WhoisServer VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_entropy FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX DomainRecord VALUES($0, _, _, $1, _) USING SEPARATOR=",", HEADER="false", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_A_org FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Organisation VALUES($1) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_A_Org VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_MX_org FOR GRAPH Artemis {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX Organisation VALUES($1) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+      LOAD MyDataSource TO EDGE DomainRecord_MX_Org VALUES($1, $2) USING SEPARATOR=",", HEADER="true", EOL="\n", QUOTE="double";
+    }
+
+set exit_on_error = "true"
+
+

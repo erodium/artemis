@@ -37,9 +37,13 @@ def get_whois_data(src_file=None, dest_file=None, start_at=1):
                 domain = domain.strip()
                 full_domain = domain
                 print(full_domain, end="; ")
-                if len(domain.split(".")) > 2:
+                splits = domain.split(".")
+                if len(splits) > 2:
                     print("shortening, ", end=" ")
-                    domain = ".".join(domain.split(".")[-2:])
+                    if splits[-1].lower() not in ["au", "uk", 'ru', 'ua']:
+                        domain = ".".join(splits[-2:])
+                    else:
+                        domain = ".".join(splits[-3:])
                 print("using ", domain, end="; ")
                 w = whois.whois(domain)
                 print(w)

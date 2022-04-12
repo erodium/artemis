@@ -90,7 +90,10 @@ country_map = {
     "AUSTRIA": "AT",
     "NETHERLANDS (THE)": "NL",
     "PORTUGAL": "PT",
-    "ARMENIA": "AM"
+    "ARMENIA": "AM",
+    "CYPRUS": "CY",
+    "CHINA": "CN",
+    "RUSSIA": "RU"
 }
 
 
@@ -101,14 +104,18 @@ def clean_country(country):
             parts = c.split(';')
             if parts[0] == parts[1]:
                 c = parts[0]
+            elif parts[0] == 'GB' and parts[1] == 'UK':
+                c = 'GB'
             else:
                 bad_countries.append(c)
-        elif "UNITED STATES" in c:
+        elif "UNITED STATES" in c or "HERNDON" in c:
             c = "US"
         elif "REDACTED" in c or "PERSONAL DATA" in c:
             c = "XX"  # country ws redacted
         elif c in country_map.keys():
             c = country_map[c]
+        elif "CYPRUS" in c:
+            c = "CY"
         else:
             bad_countries.append(c)
     return c
@@ -175,7 +182,7 @@ def set_expiration_date(row):
 
 def clean_data(df):
     clean_df = df.copy(deep=True)  # make a copy of the df
-    clean_df = clean_df.dropna(subset='redacted')  # drop any where redacted is NaN; those don't contain whois record
+    clean_df = clean_df.dropna(subset=['redacted'])  # drop any where redacted is NaN; those don't contain whois record
     clean_df['country'] = clean_df.country.fillna("ZZ")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
     print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")

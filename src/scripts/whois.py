@@ -20,9 +20,9 @@ def get_whois_data(src_file=None, dest_file=None, start_at=1):
     print(f"Total domains: {total_num}")
 
     if start_at == 1:
-        file_attribute = 'w' # overwrite the file if it exists
+        file_attribute = 'w'  # overwrite the file if it exists
     else:
-        file_attribute = 'a' # add to the file if it exists
+        file_attribute = 'a'  # add to the file if it exists
 
     with open(dest_file, file_attribute) as f:
         on_domain = 1
@@ -37,20 +37,23 @@ def get_whois_data(src_file=None, dest_file=None, start_at=1):
                 domain = domain.strip()
                 full_domain = domain
                 print(full_domain, end="; ")
-                if len(domain.split(".")) > 2:
+                splits = domain.split(".")
+                if len(splits) > 2:
                     print("shortening, ", end=" ")
-                    domain = ".".join(domain.split(".")[-2:])
+                    if splits[-1].lower() not in ["au", "uk", 'ru', 'ua']:
+                        domain = ".".join(splits[-2:])
+                    else:
+                        domain = ".".join(splits[-3:])
                 print("using ", domain, end="; ")
                 w = whois.whois(domain)
                 print(w)
                 domain_data = {}
-                for k,v in w.items():
+                for k, v in w.items():
                     domain_data[k] = v
-                f.write(json.dumps({full_domain:domain_data}, indent=4, sort_keys=True, default=str))
+                f.write(json.dumps({full_domain: domain_data}, sort_keys=True, default=str) + "\n")
             except whois.parser.PywhoisError as e:
                 print("error: ", e)
-                f.write(json.dumps({full_domain:"error"}))
+                f.write(json.dumps({full_domain: "error"})+"\n")
             finally:
                 on_domain += 1
                 sleep(4)
-

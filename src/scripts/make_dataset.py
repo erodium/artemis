@@ -11,7 +11,7 @@ from artemis_data import load_datafile, clean_data
 whois_data_file_suffix = '_whois_data.txt'
 entropy_data_file_suffix = '_entropy_data.txt'
 ip_data_file_suffix = '_ip_data.txt'
-final_data_filename = 'whois_data.csv'
+final_data_filename = 'better_whois_data.csv'
 
 
 @click.command()

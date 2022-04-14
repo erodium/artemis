@@ -5,7 +5,7 @@ import shutil
 """
 Combine raw DGA datasets into one file.
 
-Usage: make_dga_dataset.py --raw_benign_domain_file="../../data/raw/dga_benign_domain_data.csv" --raw_dga_domain_file="../../data/raw/dga_dga_domain_data.csv" --output_file="../../data/processed/dga_data.csv"
+Usage: make_dga_dataset.py --raw_benign_domain_file="../../../data/raw/dga_benign_domain_data.csv" --raw_dga_domain_file="../../../data/raw/dga_dga_domain_data.csv" --output_file="../../../data/processed/dga_data.csv"
 
 Todo:
 * Fold this into a common make dataset script.

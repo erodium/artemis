@@ -3,18 +3,20 @@ import os
 import requests
 import csv
 import random
-from parse_json import parse_json
+import pandas as pd
 
 """
 Pull down a list of domains from Majestic Million and sample them (and optionally deconflict with another dataset). 
 
-Usage: python3.10 get_benign_domains.py --source 'http://downloads.majestic.com/majestic_million.csv' --num_domains 32000 --output_file '../../data/raw/dga_benign_domain_data.csv' --deconflict True --deconflict_file '../../data/raw/benign_whois_data.txt'
+Usage: get_benign_domains.py --source 'http://downloads.majestic.com/majestic_million.csv' --num_domains 32000 --output_file '../../../data/raw/dga_benign_domain_data.csv' --deconflict True --deconflict_file '../../../data/raw/benign_whois_data.txt' --domain_feature_name 'domain' --identifier_feature_name 'malicious' --identifier_feature_value = 'False'
 
 Todo:
 * Handle other source types.
 * Handle other deconflict file types.
 * Dynamically locate domain field in csv.
 * Modularize.
+* Automatically count the number of DGA domains created and generate the same number of Majestic domains.
+* Create defaults to shorten required fields in CLI.
 """
 
 # Allow to run as a standalone script
@@ -26,6 +28,9 @@ if __name__ == "__main__":
     parser.add_argument('--output_file', help='The filename to save the results to.')
     parser.add_argument('--deconflict', nargs="?", default=False, help='Should the list of domains generated be deconflicted from another source?')
     parser.add_argument('--deconflict_file', help='Which file should be used to deconflict.')
+    parser.add_argument('--domain_feature_name', help='Feature name in deconflict file that holds the domain names.')
+    parser.add_argument('--identifier_feature_name', help='Feature name in deconflict file that identifies the domain name as benign.')
+    parser.add_argument('--identifier_feature_value', help='Value in identifier feature that indicates that a domain name is benign.')
     parser.add_argument('--verbose', nargs="?", default=False, help='Print verbose information.')
     args = parser.parse_args()
     source = args.source
@@ -33,7 +38,19 @@ if __name__ == "__main__":
     output_file = args.output_file
     deconflict = args.deconflict
     deconflict_file = args.deconflict_file
+    domain_feature_name = args.domain_feature_name
+    identifier_feature_name = args.identifier_feature_name
+    identifier_feature_value = args.identifier_feature_value
     verbose = args.verbose
+
+    # Convert feature value.
+    if identifier_feature_value == "False":
+        identifier_feature_value = False
+    elif identifier_feature_value == "True":
+        identifier_feature_value = True
+    else:
+        print("identifier_feature_value value specified is unrecognized.")
+        exit()
 
     benign_domain_list = [] 
     with requests.Session() as s:
@@ -47,22 +64,9 @@ if __name__ == "__main__":
             benign_domain_count += 1
 
     if deconflict:
-        with open(deconflict_file) as df:
-            deconflict_data = df.read()
-
-            deconflict_data_list = []
-            while True:
-                obj, remaining = parse_json(deconflict_data)
-                deconflict_data_list.append(obj)
-                deconflict_data = remaining
-                if not remaining.strip():
-                    break
-
-        deconflict_domain_list = []
-        for entry in deconflict_data_list:
-            deconflict_domain = list(entry.keys())[0]
-            deconflict_domain_list.append(deconflict_domain)
-
+        col_list = [domain_feature_name, identifier_feature_name]
+        deconflict_df = pd.read_csv(deconflict_file, usecols=col_list)
+        deconflict_domain_list = deconflict_df['domain'].tolist()
         benign_domain_list = [x for x in benign_domain_list if x not in deconflict_domain_list]
 
     # Sample benign_domain list

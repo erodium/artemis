@@ -5,6 +5,8 @@ setuptools
 python-whois
 dvc
 pandas
+jupyter
+
 # external requirements
 click
 Sphinx

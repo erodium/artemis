@@ -52,6 +52,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--dns_file', help='The dns filename to parse.')
     parser.add_argument('--output_file', help='The filename to save the results to.')
+    parser.add_argument('--start_at', default=0, help='The row to start at')
+    parser.add_argument('--end_at', default=-1, help='The row to end at')
     parser.add_argument('--verbose', nargs="?", default=False, help='Print verbose information.')
     args = parser.parse_args()
     dns_file = args.dns_file
@@ -71,16 +73,23 @@ if __name__ == "__main__":
             break
 
     results_list = []
+    currow = 0
+    if args.end_at < 1:
+        endrow = len(domain_list)+1
+    else:
+        endrow = int(args.end_at)
     for domain_data in domain_list:
-        domain_name = list(domain_data.keys())[0]
-        results = {}
-        for record_type in domain_data[domain_name]:
-            ip_address = domain_data[domain_name][record_type]["IP"]
-            if ip_address != "NA":
-                results[record_type] = obtain_ip_data(ip_address, verbose=verbose)
-            else:
-                results[record_type] = {'CC': 'NA', 'Org': 'NA'}
-        results_list.append({domain_name: results})
+        currow += 1
+        if currow >= int(args.start_at) and currow <= endrow:
+            domain_name = list(domain_data.keys())[0]
+            results = {}
+            for record_type in domain_data[domain_name]:
+                ip_address = domain_data[domain_name][record_type]["IP"]
+                if ip_address != "NA":
+                    results[record_type] = obtain_ip_data(ip_address, verbose=verbose)
+                else:
+                    results[record_type] = {'CC': 'NA', 'Org': 'NA'}
+            results_list.append({domain_name: results})
 
-    with open(output_file, 'w') as fp:
+    with open(output_file, 'a') as fp:
         fp.write('\n'.join(json.dumps(i) for i in results_list) + '\n')

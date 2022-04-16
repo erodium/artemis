@@ -52,11 +52,6 @@ Project Organization
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
 
-Creating the datafiles
---------
-* Simple method of creating datafiles: 
-  * python src/scripts/make_dataset.py data/raw data/processed
-
 
 Data Generation
 --------
@@ -72,6 +67,7 @@ Data Generation
 - Added data folder to dvc (dvc add data)
 - Added remote tracking storage to the shared google drive/folder ( dvc remote add -d storage ####)
 - Pushed the "raw" data to dvc remote
+
 ## To use it:
 
 - install dvc (pip install dvc)
@@ -82,3 +78,8 @@ Data Generation
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+Using Artemis
+--------
+* Simple method of creating datafiles (assuming files have been generated):
+  * python src/scripts/make_dataset.py data/raw data/processed

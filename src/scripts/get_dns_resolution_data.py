@@ -1,4 +1,4 @@
-import dns.resolver 
+import dns.resolver
 import sys
 import argparse
 import json
@@ -25,8 +25,9 @@ Todo:
 * Rate limit handling (Google name servers allow 1500 QPS)
 """
 
-def resolve_dns_records(domain_name, requested_record_type="ALL", custom_nameservers=['8.8.8.8','8.8.4.4'], verbose=False):
 
+def resolve_dns_records(domain_name, requested_record_type="ALL", custom_nameservers=['8.8.8.8', '8.8.4.4'],
+                        verbose=False):
     supported_record_types = ["A", "MX"]
     results = {}
 
@@ -53,18 +54,17 @@ def resolve_dns_records(domain_name, requested_record_type="ALL", custom_nameser
 
     if verbose: print(domain_name + ": " + str(results))
     return results
-    
+
 
 def query_domain(domain_name, record_type, custom_nameservers):
     custom_resolver = dns.resolver.Resolver()
     custom_resolver.nameservers = custom_nameservers
     try:
-    	answers = dns.resolver.resolve(domain_name, record_type) 
-    except: 
+        answers = dns.resolver.resolve(domain_name, record_type)
+    except:
         answers = "NA"
 
     return answers
-
 
 # Allow to run as a standalone script
 if __name__ == "__main__":
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     verbose = args.verbose
 
     with open(whois_file) as f:
-       data = f.read()
+        data = f.read()
 
     domain_list = []
 
@@ -97,4 +97,3 @@ if __name__ == "__main__":
 
     with open(output_file, 'w') as fp:
         fp.write('\n'.join(json.dumps(i) for i in results_list) + '\n')
-

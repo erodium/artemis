@@ -6,11 +6,12 @@ import blosc
 from nltk.corpus import words
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.ensemble import RandomForestClassifier
-
 sys.path.append('..')
+sys.path.append('src/scripts')
+sys.path.append('src/scripts/dga')
 from generate_entropy_data import generate_shannon_entropy_score
 from domain_tools import get_domain_parts
-from config import (
+from dga_config import (
     ngram_size,
     dga_model_file
 )
@@ -69,12 +70,13 @@ def mask_string(string_value):
     return ''.join(masked_domain)
 
 # Function to allow interaction from other scripts to load existing model and 
+# Todo: Handle domains that can't be rooted better than simply giving them a 0 value.
 def dga_prediction(domain=None, entropy=None, dga_model_file=dga_model_file, ngram_size=ngram_size, verbose=False):
     domain_root = ''.join(get_domain_parts(domain)[:2])
     if verbose: print("domain_root: " + domain_root)
     if domain_root == '':
-        print("Unable to properly parse the domain into parts.")
-        exit()
+        results = 0
+        return results
     length = len(domain_root)
     uncommon_letters = find_uncommon_letters(domain_root)
 
@@ -118,7 +120,7 @@ def dga_prediction(domain=None, entropy=None, dga_model_file=dga_model_file, ngr
     reordered_columns = columns
     domain_df = domain_df.reindex(reordered_columns, axis=1)
 
-    results = model.predict(domain_df)[0]
+    results = model.predict_proba(domain_df)[0][1]
 
     return results
 

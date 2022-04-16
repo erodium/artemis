@@ -24,7 +24,4 @@ if __name__ == "__main__":
 
     results = dga_prediction(domain=domain_name, entropy=entropy_value, verbose=verbose)
 
-    if results == False:
-        print("Domain " + domain_name + " is not a DGA.")
-    else:
-        print("Domain " + domain_name + " is a DGA.")
+    print("Domain " + domain_name + " DGA probability is " + str(results))

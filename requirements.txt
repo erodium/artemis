@@ -19,3 +19,15 @@ dnspython>=2.2.1
 ipwhois>=1.2.0
 tldextract>=3.2.0
 argparse
+numpy
+pickle
+sys
+itertools
+sklearn
+nltk
+os
+subprocess
+csv
+random
+shutil
+blosc

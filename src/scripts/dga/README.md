@@ -12,4 +12,6 @@ Note: Command line syntax and examples are noted within each script.
 
 ## PREDICTION PREREQUISITES
 1. Ensure all Python modules from requirements.txt are installed.
-2. Review and run example_predict.py. 
+
+## PREDICTION PROCESS
+1. Review and run example_predict.py. 

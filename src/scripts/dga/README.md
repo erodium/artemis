@@ -15,3 +15,12 @@ Note: Command line syntax and examples are noted within each script.
 
 ## PREDICTION PROCESS
 1. Review and run example_predict.py. 
+
+Example (fictitious entropy values used):
+```
+python example_predict.py --domain_name hjlskadfjoie.com --entropy_value 3.5
+Domain hjlskadfjoie.com is a DGA.
+
+python example_predict.py --domain_name google.com --entropy_value 3.1
+Domain google.com is not a DGA.
+```

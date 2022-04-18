@@ -10,13 +10,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from nltk.corpus import words
-
 sys.path.append('..')
+sys.path.append('src/scripts')
+sys.path.append('src/scripts/dga')
 from generate_entropy_data import generate_shannon_entropy_score
 from domain_tools import get_domain_parts
 from dga_functions import *
-
-from config import (
+from dga_config import (
     ngram_size,
     masked_ngram_values
 )

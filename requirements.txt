@@ -1,13 +1,13 @@
 # local package
 -e .
+
+# external requirements
 requests
 setuptools
 python-whois
 dvc
 pandas
 jupyter
-
-# external requirements
 click
 Sphinx
 coverage

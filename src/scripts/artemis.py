@@ -9,6 +9,7 @@ from get_ip_data import obtain_ip_data
 from datetime import datetime
 from joblib import load
 import numpy as np
+from dga.dga_functions import dga_prediction
 
 
 def calc_days_since_creation(creation_date):
@@ -31,6 +32,8 @@ def cli(domain):
         mx_ip = ips.get('MX').get('IP')
         mx_dns = obtain_ip_data(mx_ip)
     es = generate_shannon_entropy_score(domain)
+    # Pass domain through DGA model and return the probability that it is a DGA.
+    dga_probability = dga_prediction(domain=domain, entropy=es)[1]
     #w_final = process(w_json)
     mx_cc = mx_dns.get('CC').lower()
     model_loc = "models/rfc.joblib"

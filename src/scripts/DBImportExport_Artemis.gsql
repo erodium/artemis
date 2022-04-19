@@ -431,7 +431,7 @@ CREATE QUERY community_features_calc(/* Parameters here */) FOR GRAPH Artemis {
   
   tmp = SELECT dr 
   from DomainRecord:dr
-  ACCUM 
+  POST-ACCUM 
   if dr.MaliciousFlag THEN 
     @@group_entropy += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 1),
     dr.@flag =1
@@ -451,7 +451,7 @@ CREATE QUERY community_features_calc(/* Parameters here */) FOR GRAPH Artemis {
   
   tmp = SELECT dr 
   from DomainRecord:dr
-  ACCUM 
+  POST-ACCUM 
   if dr.MaliciousFlag THEN 
     @@group_entropy_final += (dr.community->dr.entropy, dr.entropy, dr.entropy, 1, 1),
     dr.@flag =1

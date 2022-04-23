@@ -1,8 +1,8 @@
 import argparse
 import json
-from parse_json import parse_json
-from domain_tools import get_domain_parts
-from generate_entropy_data import generate_shannon_entropy_score
+from .parse_json import parse_json
+from .domain_tools import get_domain_parts
+from .generate_entropy_data import generate_shannon_entropy_score
 from dga.dga_functions import dga_prediction 
 
 """

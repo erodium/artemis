@@ -2,8 +2,8 @@ import argparse
 import json
 from collections import Counter
 from math import log
-from parse_json import parse_json
-from domain_tools import get_domain_parts
+from .parse_json import parse_json
+from .domain_tools import get_domain_parts
 
 """
 Remove the TLD from the domain name (i.e., "testdomain" from test.domain.com), then generate a Shannon entropy score.

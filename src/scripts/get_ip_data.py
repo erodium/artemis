@@ -39,6 +39,24 @@ def obtain_ip_data(ip_address, verbose=False):
     return cur_results
 
 
+def resolve_ip_data(domain_data, verbose):
+    domain_name = list(domain_data.keys())[0]
+    results = {}
+    for record_type in domain_data[domain_name]:
+        print("Checking record type:", record_type, "for", domain_data[domain_name])
+        ip_address = domain_data[domain_name][record_type]["IP"]
+        if ip_address != "NA":
+            if verbose:
+                print(ip_address, "not NA!")
+            results[record_type] = obtain_ip_data(ip_address, verbose=verbose)
+        else:
+            if verbose:
+                print(ip_address, "is NA!")
+            results[record_type] = {'CC': 'NA', 'Org': 'NA'}
+        sleep(0.5)
+    return results
+
+
 # Allow to run as a standalone script
 if __name__ == "__main__":
     # Use Argparse to handle cli inputs
@@ -86,25 +104,10 @@ if __name__ == "__main__":
         print("Starting at row {} and ending at row {}".format(args.start_at, last_row))
 
     for domain_data in domain_list:
+        domain_name = list(domain_data.keys())[0]
         current_row += 1
         if int(args.start_at) <= current_row <= last_row:
-            domain_name = list(domain_data.keys())[0]
-            results = {}
-            for record_type in domain_data[domain_name]:
-                print("Checking record type:", record_type, "for", domain_data[domain_name])
-                ip_address = domain_data[domain_name][record_type]["IP"]
-                if ip_address != "NA":
-                    if verbose:
-                        print(ip_address, "not NA!")
-                    results[record_type] = obtain_ip_data(ip_address, verbose=verbose)
-                else:
-                    if verbose:
-                        print(ip_address, "is NA!")
-                    results[record_type] = {'CC': 'NA', 'Org': 'NA'}
-                sleep(0.5)
-            if verbose:
-                print(current_row, domain_name)
-            results_list.append({domain_name: results})
+            results_list.append({domain_name: resolve_ip_data(domain_data, verbose)})
             if verbose:
                 print("Added", domain_name, ":", len(results_list), "total records")
         else:

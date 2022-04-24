@@ -5,10 +5,15 @@ Every day, threat actors utilize internet domain names to facilitate their malic
 
 Using Artemis
 --------
+* Install requirements
+  * pip install -r requirements.txt
+* Enable the CLI
+  * pip install -e .
+* Using Artemis to check a domain
+  * artemis `$DOMAIN`
+  * use -v or --verbose for additional information
 * Simple method of creating datafiles (assuming files have been generated):
   * python src/scripts/make_dataset.py data/raw data/processed
-* Using Artemis to check a domain
-  * python src/scripts/artemis.py `$DOMAIN`
 
 Data Generation
 --------

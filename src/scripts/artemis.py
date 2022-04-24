@@ -27,10 +27,18 @@ def predict(domain, verbose=False):
             return None
         if verbose:
             click.echo(f"Received WHOIS data for {domain}: \n{w_json}")
-        ips = resolve_dns_records(domain, verbose=verbose)
+        try:
+            ips = resolve_dns_records(domain, verbose=verbose)
+        except Exception as e:
+            print(f"Error in resolve_dns_records: {e}")
+            return None
         if verbose:
             click.echo(f"Received IP addresses of type {type(ips)} for {domain}.")
-        dns = get_ip_data.resolve_ip_data({domain: ips}, verbose)
+        try:
+            dns = get_ip_data.resolve_ip_data({domain: ips}, verbose)
+        except Exception as e:
+            print(f"Error in get_ip_data: {e}")
+            return None
         if verbose:
             click.echo(f"Received DNS data of {type(dns)}for {domain} IPs.")
 

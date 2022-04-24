@@ -404,7 +404,6 @@ def clean_data(df):
         clean_df['registrant_contact_name'] = np.where(clean_df['registrant_contact_name'].isnull(), 0, 1)
     else:
         clean_df['registrant_contact_name'] = 0
-    clean_df['registrar'] = clean_df.registrar.fillna('REGISTRAR_NAN').apply(str.lower)
     # Process dnssec
     if 'dnssec' not in clean_df.columns.tolist():
         clean_df['dnssec'] = pd.NA
@@ -419,7 +418,7 @@ def clean_data(df):
     # drop any columns with fewer than 300 rows having data
     if len(clean_df) > 300:
         clean_df = clean_df.dropna(how='any', thresh=300, axis='columns')
-    for c in ['org', 'state', 'address', 'city', 'name', 'zipcode']:
+    for c in ['org', 'state', 'address', 'city', 'name', 'zipcode', 'registrar']:
         if c in clean_df.columns.tolist():
             clean_df[c] = clean_df[c].fillna(f"{c.upper()}_NAN").apply(str.lower)
         else:

@@ -20,8 +20,14 @@ def cli(domain, verbose):
         dns = test_dns
     else:
         w_json = whois.whois(domain)
+        if verbose:
+            click.echo(f"Received WHOIS data for {domain}: \n{w_json}")
         ips = resolve_dns_records(domain, verbose=verbose)
-        dns = get_ip_data.resolve_ip_data(ips, verbose)
+        if verbose:
+            click.echo(f"Received IP addresses of type {type(ips)} for {domain}.")
+        dns = get_ip_data.resolve_ip_data({domain: ips}, verbose)
+        if verbose:
+            click.echo(f"Received DNS data of {type(dns)}for {domain} IPs.")
 
     processed_json = artemis_data.process(json.loads(str(w_json)))
     processed_json['domain'] = domain
@@ -30,6 +36,8 @@ def cli(domain, verbose):
     dns_df = pd.DataFrame([artemis_data.change_ip_data(dns_data)])
     merged_df = whois_df.merge(dns_df, on='domain')
     merged_df['entropy'] = generate_shannon_entropy_score(domain, verbose)
+    if verbose:
+        click.echo(merged_df.iloc[0])
     cleaned_df = artemis_data.clean_data(merged_df)
     country_encoder = load('models/country_encoder.joblib')
     encoder_dict = load('models/enc_dict.joblib')
@@ -39,31 +47,57 @@ def cli(domain, verbose):
             encoded_df[col] = encoder_dict[col].transform(encoded_df[col])
         except ValueError as ve:
             encoded_df[col] = -1
-            click.echo(ve)
+            if verbose:
+                err = f"During processing of {col}, {ve}"
+                click.echo(err)
+        except Exception as e:
+            if verbose:
+                err = f"During processing of {col}, {ve}"
+                click.echo(err)
+                raise e
     for col in ['country', 'dns_rec_a_cc', 'dns_rec_mx_cc']:
-        encoded_df[col] = country_encoder.transform(encoded_df[col])
+        try:
+            encoded_df[col] = country_encoder.transform(encoded_df[col])
+        except ValueError as ve:
+            if verbose:
+                err = f"Using country code ZZ for {domain} since {encoded_df[col]} is not known."
+                click.echo(err)
+            encoded_df[col] = country_encoder.transform(["zz"])
     for col in artemis_data.get_ns_cols():
         if col in encoded_df.columns.tolist():
             encoded_df.drop(columns=col, inplace=True)
     for col in artemis_data.get_email_cols():
         if col in encoded_df.columns.tolist():
             encoded_df.drop(columns=col, inplace=True)
+    if verbose:
+        click.echo("Completed df encoding.")
     encoded_df = encoded_df.drop(
         columns=['domain', 'updated_date', 'expiration_date', 'creation_date', 'days_since_creation'])
+    encoded_df = encoded_df.fillna(-1)
     community_predictor = load("models/community_predictor.joblib")
     col_order = community_predictor.feature_names_in_
     encoded_df = encoded_df[col_order]
-    encoded_df['community'] = community_predictor.predict(encoded_df)
+    predicted_community = community_predictor.predict(encoded_df)[0]
+    encoded_df['community'] = predicted_community
+    if verbose:
+        click.echo(f"Predicting community {predicted_community} for {domain}.")
     community_df = pd.read_csv('data/processed/graph_community_features.csv')
     community_df = community_df.drop(columns='DomainRecord').drop_duplicates()
-    c_df = community_df[community_df.community == encoded_df.iloc[0].community]
+    c_df = community_df[community_df.community == predicted_community]
     cols = c_df.columns.tolist()
+    c_df.index = encoded_df.index
     for col in cols:
-        encoded_df[col] = c_df[col]
+        encoded_df[col] = c_df.iloc[0][col]
     clf = load("models/rfc.joblib")
     col_order = clf.feature_names_in_
     final_df = encoded_df[col_order]
-    predicted_malicious = clf.predict(final_df)
+    final_df = final_df.fillna(-1)
+    try:
+        predicted_malicious = clf.predict(final_df)
+    except ValueError as ve:
+        click.echo(final_df.iloc[0])
+        raise ve
+
     if predicted_malicious == 1:
         mal = "WILL be"
         warn = "WARNING! "

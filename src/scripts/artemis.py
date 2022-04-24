@@ -8,18 +8,23 @@ import src.scripts.get_ip_data as get_ip_data
 from src.scripts.generate_entropy_data import generate_shannon_entropy_score
 from joblib import load
 import src.scripts.artemis_data as artemis_data
+import os.path as osp
 
-@click.command()
-@click.argument('domain')
-@click.option('-v', '--verbose', is_flag=True)
-def cli(domain, verbose):
+HERE = osp.dirname(osp.abspath(__file__))
+
+
+def predict(domain, verbose=False):
     if domain == "test":
         domain = "google.com"
         w_json = test_entry
         ips = test_ips
         dns = test_dns
     else:
-        w_json = whois.whois(domain)
+        try:
+            w_json = whois.whois(domain)
+        except whois.parser.PywhoisError as e:
+            print(f"Domain {domain} returning Whois error")
+            return None
         if verbose:
             click.echo(f"Received WHOIS data for {domain}: \n{w_json}")
         ips = resolve_dns_records(domain, verbose=verbose)
@@ -39,8 +44,8 @@ def cli(domain, verbose):
     if verbose:
         click.echo(merged_df.iloc[0])
     cleaned_df = artemis_data.clean_data(merged_df)
-    country_encoder = load('models/country_encoder.joblib')
-    encoder_dict = load('models/enc_dict.joblib')
+    country_encoder = load(HERE + '/../../models/country_encoder.joblib')
+    encoder_dict = load(HERE + '/../../models/enc_dict.joblib')
     encoded_df = cleaned_df.copy()
     for col in encoder_dict.keys():
         try:
@@ -52,7 +57,7 @@ def cli(domain, verbose):
                 click.echo(err)
         except Exception as e:
             if verbose:
-                err = f"During processing of {col}, {ve}"
+                err = f"During processing of {col}, {e}"
                 click.echo(err)
                 raise e
     for col in ['country', 'dns_rec_a_cc', 'dns_rec_mx_cc']:
@@ -74,21 +79,21 @@ def cli(domain, verbose):
     encoded_df = encoded_df.drop(
         columns=['domain', 'updated_date', 'expiration_date', 'creation_date', 'days_since_creation'])
     encoded_df = encoded_df.fillna(-1)
-    community_predictor = load("models/community_predictor.joblib")
+    community_predictor = load(HERE+"/../../models/community_predictor.joblib")
     col_order = community_predictor.feature_names_in_
     encoded_df = encoded_df[col_order]
     predicted_community = community_predictor.predict(encoded_df)[0]
     encoded_df['community'] = predicted_community
     if verbose:
         click.echo(f"Predicting community {predicted_community} for {domain}.")
-    community_df = pd.read_csv('data/processed/graph_community_features.csv')
+    community_df = pd.read_csv(HERE+'/../../data/processed/graph_community_features.csv')
     community_df = community_df.drop(columns='DomainRecord').drop_duplicates()
     c_df = community_df[community_df.community == predicted_community]
     cols = c_df.columns.tolist()
     c_df.index = encoded_df.index
     for col in cols:
         encoded_df[col] = c_df.iloc[0][col]
-    clf = load("models/rfc.joblib")
+    clf = load(HERE + "/../../models/rfc.joblib")
     col_order = clf.feature_names_in_
     final_df = encoded_df[col_order]
     final_df = final_df.fillna(-1)
@@ -97,6 +102,14 @@ def cli(domain, verbose):
     except ValueError as ve:
         click.echo(final_df.iloc[0])
         raise ve
+    return predicted_malicious[0]
+
+
+@click.command()
+@click.argument('domain')
+@click.option('-v', '--verbose', is_flag=True)
+def cli(domain, verbose):
+    predicted_malicious = predict(domain, verbose)
 
     if predicted_malicious == 1:
         mal = "WILL be"

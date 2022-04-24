@@ -1,55 +1,104 @@
 import click
-import whois
-from artemis_data import process, change_whois_data, change_ip_data, calc_days_since
-import pandas as pd
 import json
-from generate_entropy_data import generate_shannon_entropy_score
-from get_dns_resolution_data import resolve_dns_records
-from get_ip_data import obtain_ip_data
-from datetime import datetime
+import whois
+import pandas as pd
+from src.scripts.get_dns_resolution_data import resolve_dns_records
+import src.scripts.get_ip_data as get_ip_data
+# from src.scripts.dga.dga_functions import dga_prediction
+from src.scripts.generate_entropy_data import generate_shannon_entropy_score
 from joblib import load
-import numpy as np
-from dga.dga_functions import dga_prediction
-
-
-def calc_days_since_creation(creation_date):
-    today = datetime.today()
-    diff = today - datetime.strftime(creation_date, fmt='%Y-%m-%d')
-    return diff
-
+import src.scripts.artemis_data as artemis_data
 
 @click.command()
 @click.argument('domain')
-def cli(domain):
+@click.option('-v', '--verbose', is_flag=True)
+def cli(domain, verbose):
     if domain == "test":
         domain = "google.com"
-        w_json = json.loads(test_entry)
+        w_json = test_entry
         ips = test_ips
-        mx_dns = {'CC': 'US', 'Org': 'Google LLC'}
+        dns = test_dns
     else:
         w_json = whois.whois(domain)
-        ips = resolve_dns_records(domain)
-        mx_ip = ips.get('MX').get('IP')
-        mx_dns = obtain_ip_data(mx_ip)
-    es = generate_shannon_entropy_score(domain)
-    # Pass domain through DGA model and return the probability that it is a DGA.
-    dga_probability = dga_prediction(domain=domain, entropy=es)[1]
-    #w_final = process(w_json)
-    mx_cc = mx_dns.get('CC').lower()
-    model_loc = "models/rfc.joblib"
-    clf = load(model_loc)
-    enc = load("models/enc.joblib")
-    mx_cc_enc = enc.transform([mx_cc])
-    creation_date = w_json.get('creation_date')
-    if isinstance(creation_date, list):
-        creation_date = creation_date[0]
-    creation_date = pd.to_datetime(creation_date).date()
-    days_since_creation = calc_days_since(creation_date)
-    features = [
-        es, days_since_creation, creation_date.year, creation_date.month, creation_date.day, mx_cc_enc[0]
-    ]
-    predicted_malicious = clf.predict(np.array(features).reshape(1, -1))[0]
-    if predicted_malicious:
+        if verbose:
+            click.echo(f"Received WHOIS data for {domain}: \n{w_json}")
+        ips = resolve_dns_records(domain, verbose=verbose)
+        if verbose:
+            click.echo(f"Received IP addresses of type {type(ips)} for {domain}.")
+        dns = get_ip_data.resolve_ip_data({domain: ips}, verbose)
+        if verbose:
+            click.echo(f"Received DNS data of {type(dns)}for {domain} IPs.")
+
+    processed_json = artemis_data.process(json.loads(str(w_json)))
+    processed_json['domain'] = domain
+    whois_df = pd.DataFrame([processed_json])
+    dns_data = {domain: dns}
+    dns_df = pd.DataFrame([artemis_data.change_ip_data(dns_data)])
+    merged_df = whois_df.merge(dns_df, on='domain')
+    merged_df['entropy'] = generate_shannon_entropy_score(domain, verbose)
+    if verbose:
+        click.echo(merged_df.iloc[0])
+    cleaned_df = artemis_data.clean_data(merged_df)
+    country_encoder = load('models/country_encoder.joblib')
+    encoder_dict = load('models/enc_dict.joblib')
+    encoded_df = cleaned_df.copy()
+    for col in encoder_dict.keys():
+        try:
+            encoded_df[col] = encoder_dict[col].transform(encoded_df[col])
+        except ValueError as ve:
+            encoded_df[col] = -1
+            if verbose:
+                err = f"During processing of {col}, {ve}"
+                click.echo(err)
+        except Exception as e:
+            if verbose:
+                err = f"During processing of {col}, {ve}"
+                click.echo(err)
+                raise e
+    for col in ['country', 'dns_rec_a_cc', 'dns_rec_mx_cc']:
+        try:
+            encoded_df[col] = country_encoder.transform(encoded_df[col])
+        except ValueError as ve:
+            if verbose:
+                err = f"Using country code ZZ for {domain} since {encoded_df[col]} is not known."
+                click.echo(err)
+            encoded_df[col] = country_encoder.transform(["zz"])
+    for col in artemis_data.get_ns_cols():
+        if col in encoded_df.columns.tolist():
+            encoded_df.drop(columns=col, inplace=True)
+    for col in artemis_data.get_email_cols():
+        if col in encoded_df.columns.tolist():
+            encoded_df.drop(columns=col, inplace=True)
+    if verbose:
+        click.echo("Completed df encoding.")
+    encoded_df = encoded_df.drop(
+        columns=['domain', 'updated_date', 'expiration_date', 'creation_date', 'days_since_creation'])
+    encoded_df = encoded_df.fillna(-1)
+    community_predictor = load("models/community_predictor.joblib")
+    col_order = community_predictor.feature_names_in_
+    encoded_df = encoded_df[col_order]
+    predicted_community = community_predictor.predict(encoded_df)[0]
+    encoded_df['community'] = predicted_community
+    if verbose:
+        click.echo(f"Predicting community {predicted_community} for {domain}.")
+    community_df = pd.read_csv('data/processed/graph_community_features.csv')
+    community_df = community_df.drop(columns='DomainRecord').drop_duplicates()
+    c_df = community_df[community_df.community == predicted_community]
+    cols = c_df.columns.tolist()
+    c_df.index = encoded_df.index
+    for col in cols:
+        encoded_df[col] = c_df.iloc[0][col]
+    clf = load("models/rfc.joblib")
+    col_order = clf.feature_names_in_
+    final_df = encoded_df[col_order]
+    final_df = final_df.fillna(-1)
+    try:
+        predicted_malicious = clf.predict(final_df)
+    except ValueError as ve:
+        click.echo(final_df.iloc[0])
+        raise ve
+
+    if predicted_malicious == 1:
         mal = "WILL be"
         warn = "WARNING! "
     else:
@@ -114,9 +163,10 @@ test_entry = """
         "zipcode": null,
         "country": "US"
     }
-    """
+"""
 
 test_ips = {'A': {'IP': '172.217.1.206', 'Count': 1}, 'MX': {'IP': '209.85.202.26', 'Count': 5}}
+test_dns = {'A': {'CC': 'US', 'Org': 'Google LLC'}, 'MX': {'CC': 'US', 'Org': 'Google LLC'}}
 
 if __name__ == '__main__':
     cli()

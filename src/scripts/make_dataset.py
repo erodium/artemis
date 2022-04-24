@@ -46,7 +46,7 @@ def main(input_filepath, output_filepath):
     logger.info("Adding the graph community data.")
     graph_df = pd.read_csv(f"{output_filepath}/graph_community_features.csv")
     graph_df = graph_df.rename(columns={"DomainRecord": 'domain'})
-    graph_df = graph_df.drop(columns='malicious_ratio')
+    #graph_df = graph_df.drop(columns='malicious_ratio')
     interim2_df = pd.merge(interim_df, graph_df, on='domain')
     logger.info("Cleaning combined dataframe.")
     final_df = clean_data(interim2_df)

@@ -2,7 +2,7 @@ import dns.resolver
 import sys
 import argparse
 import json
-from parse_json import parse_json
+from .parse_json import parse_json
 
 """
 Return the first IP address for a specific DNS record type (e.g. MX, A)

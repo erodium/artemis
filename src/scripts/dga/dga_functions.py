@@ -9,9 +9,9 @@ from sklearn.ensemble import RandomForestClassifier
 sys.path.append('..')
 sys.path.append('src/scripts')
 sys.path.append('src/scripts/dga')
-from generate_entropy_data import generate_shannon_entropy_score
-from domain_tools import get_domain_parts
-from dga_config import (
+from ..generate_entropy_data import generate_shannon_entropy_score
+from ..domain_tools import get_domain_parts
+from .dga_config import (
     ngram_size,
     dga_model_file
 )
@@ -72,6 +72,7 @@ def mask_string(string_value):
 # Function to allow interaction from other scripts to load existing model and 
 # Todo: Handle domains that can't be rooted better than simply giving them a 0 value.
 def dga_prediction(domain=None, entropy=None, dga_model_file=dga_model_file, ngram_size=ngram_size, verbose=False):
+    dga_entropy = entropy if entropy else generate_shannon_entropy_score(domain)
     domain_root = ''.join(get_domain_parts(domain)[:2])
     if verbose: print("domain_root: " + domain_root)
     if domain_root == '':
@@ -104,7 +105,7 @@ def dga_prediction(domain=None, entropy=None, dga_model_file=dga_model_file, ngr
     base_columns.insert(0, "domain")
     ngram_columns = columns[5:]
 
-    domain_df = pd.DataFrame(data=[[domain,entropy,length,uncommon_letters,word_count,word_ratio]], columns=base_columns).set_index('domain')
+    domain_df = pd.DataFrame(data=[[domain,dga_entropy,length,uncommon_letters,word_count,word_ratio]], columns=base_columns).set_index('domain')
     domain_df['masked_ngrams'] = [masked_ngrams]
 
     # One-hot encode ngrams

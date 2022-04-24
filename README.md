@@ -3,6 +3,42 @@ Artemis
 
 Every day, threat actors utilize internet domain names to facilitate their malicious activity. This activity includes command and control (C2) of compromised infrastructure, exfiltration of sensitive data, and the delivery of malicious payloads via common internet technologies. The domain names involved in these campaigns are either specifically registered by the threat actor for a malicious purpose or are legitimate assets that have been compromised with the intent of exploiting that legitimacy to evade detection and fool unsuspecting victims. Our goal is to collect publicly available data and attempt to predict the probability that an internet domain name will be used for malicious purposes, what malicious activity the domain name facilitates, and which threat actor is most likely to carry out that activity. 
 
+Using Artemis
+--------
+* Simple method of creating datafiles (assuming files have been generated):
+  * python src/scripts/make_dataset.py data/raw data/processed
+* Using Artemis to check a domain
+  * python src/scripts/artemis.py `$DOMAIN`
+
+Data Generation
+--------
+![](docs/artemis.png)
+
+* [Threatfox malicious hostfile](https://threatfox.abuse.ch/downloads/hostfile/)
+* [Majestic Million CSV](https://downloads.majestic.com/majestic_million.csv)
+
+
+### Adding DVC to the repo
+
+- Initialised DVC (dvc init)
+- Added data folder to dvc (dvc add data)
+- Added remote tracking storage to the shared google drive/folder ( dvc remote add -d storage ####)
+- Pushed the "raw" data to dvc remote
+
+## To use it:
+
+- install dvc (pip install dvc)
+- Run: dvc pull
+- Authenticate to google drive if asked
+- Check if data folder is there and has the raw subflder with files in it at least)
+
+--------
+
+<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+
+
+
 Project Organization
 ------------
 
@@ -52,34 +88,3 @@ Project Organization
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
 
-
-Data Generation
---------
-![](docs/artemis.png)
-
-* [Threatfox malicious hostfile](https://threatfox.abuse.ch/downloads/hostfile/)
-* [Majestic Million CSV](https://downloads.majestic.com/majestic_million.csv)
-
-
-### Adding DVC to the repo
-
-- Initialised DVC (dvc init)
-- Added data folder to dvc (dvc add data)
-- Added remote tracking storage to the shared google drive/folder ( dvc remote add -d storage ####)
-- Pushed the "raw" data to dvc remote
-
-## To use it:
-
-- install dvc (pip install dvc)
-- Run: dvc pull
-- Authenticate to google drive if asked
-- Check if data folder is there and has the raw subflder with files in it at least)
-
---------
-
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
-
-Using Artemis
---------
-* Simple method of creating datafiles (assuming files have been generated):
-  * python src/scripts/make_dataset.py data/raw data/processed

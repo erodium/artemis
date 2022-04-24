@@ -5,9 +5,12 @@ import numpy as np
 
 from collections import Counter
 
-creation_date_cols = ['creation_date', 'creation_date_1', 'creation_date_2', 'creation_date_3', 'creation_date_4']
-updated_date_cols = ['updated_date', 'updated_date_1', 'updated_date_2', 'updated_date_3', 'updated_date_4']
-expiration_date_cols = ['expiration_date', 'expiration_date_1', 'expiration_date_2']
+creation_date_cols = 'creation_date creation_date_1 creation_date_2 creation_date_3 creation_date_4'
+creation_date_cols_list = creation_date_cols.split()
+updated_date_cols = 'updated_date updated_date_1 updated_date_2 updated_date_3 updated_date_4'
+updated_date_cols_list = updated_date_cols.split()
+expiration_date_cols = 'expiration_date expiration_date_1 expiration_date_2'
+expiration_date_cols_list = expiration_date_cols.split()
 bad_countries = []
 
 
@@ -33,7 +36,7 @@ def process(row):
                     if val != 'REDACTED FOR PRIVACY':  # skip redacted
                         new_row.update({k: val})  # use the other value
         elif pd.isnull(v):  # if the value is null
-            continue  # skip it
+            new_row.update({k: v})  # skip it
         elif isinstance(v, str):  # if it's a string
             if v == 'REDACTED FOR PRIVACY':  # and it's redacted
                 new_row['redacted'] = 1  # flag as redacted
@@ -98,7 +101,8 @@ country_map = {
     "ARMENIA": "AM",
     "CYPRUS": "CY",
     "CHINA": "CN",
-    "RUSSIA": "RU"
+    "RUSSIA": "RU",
+    "VENEZUELA (BOLIVARIAN REPUBLIC OF)": "VE"
 }
 
 
@@ -150,40 +154,52 @@ def calc_days_since(d):
 
 
 def set_creation_date(row):
-    mask = row[creation_date_cols].notnull()
+    mask = row[creation_date_cols_list].notnull()
     if mask.any():
-        latest_creation_date = pd.to_datetime(row[creation_date_cols])[mask].max()
-        first_creation_date = pd.to_datetime(row[creation_date_cols])[mask].min()
+        latest_creation_date = pd.to_datetime(row[creation_date_cols_list])[mask].max()
+        first_creation_date = pd.to_datetime(row[creation_date_cols_list])[mask].min()
         days_between_creations = (latest_creation_date - first_creation_date).days
     else:
         latest_creation_date = pd.NaT
         days_between_creations = pd.NA
-    row[creation_date_cols[0]] = latest_creation_date
-    row['days_between_creations'] = days_between_creations
+    if len(creation_date_cols_list) == 0:
+        creation_date_cols_list.append("creation_date")
+    row[creation_date_cols_list[0]] = latest_creation_date
+    if pd.isna(days_between_creations):
+        row['days_between_creations'] = -1
+    else:
+        row['days_between_creations'] = days_between_creations
     return row
 
 
 def set_updated_date(row):
-    mask = row[updated_date_cols].notnull()
+    mask = row[updated_date_cols_list].notnull()
     if mask.any():
-        latest_update_date = row[updated_date_cols][mask].max()
-        first_update_date = row[updated_date_cols][mask].min()
+        latest_update_date = pd.to_datetime(row[updated_date_cols_list])[mask].max()
+        first_update_date = pd.to_datetime(row[updated_date_cols_list])[mask].min()
         days_between_updates = (latest_update_date - first_update_date).days
     else:
         latest_update_date = pd.NaT
         days_between_updates = pd.NA
-    row[updated_date_cols[0]] = latest_update_date
-    row['days_between_updates'] = days_between_updates
+    if len(updated_date_cols_list) == 0:
+        updated_date_cols_list.append("updated_data")
+    row[updated_date_cols_list[0]] = latest_update_date
+    if pd.isna(days_between_updates):
+        row['days_between_updates'] = -1
+    else:
+        row['days_between_updates'] = days_between_updates
     return row
 
 
 def set_expiration_date(row):
-    mask = row[expiration_date_cols].notnull()
+    mask = row[expiration_date_cols_list].notnull()
     if mask.any():
-        latest_expiration_date = pd.to_datetime(row[expiration_date_cols])[mask].max().date()
+        latest_expiration_date = pd.to_datetime(row[expiration_date_cols_list])[mask].max().date()
     else:
         latest_expiration_date = pd.NaT
-    row[expiration_date_cols[0]] = latest_expiration_date
+    if len(expiration_date_cols_list) == 0:
+        expiration_date_cols_list.append("expiration_date")
+    row[expiration_date_cols_list[0]] = latest_expiration_date
     return row
 
 
@@ -310,53 +326,58 @@ def find_email_domains(row):
 
 
 def clean_data(df):
+    static_status_cols = " ".join(get_status_cols())
     clean_df = df.copy(deep=True)  # make a copy of the df
     # drop any where redacted is NaN; those don't contain whois record
-    clean_df = clean_df.dropna(subset=['redacted', 'domain_name'])
-    # drop any columns that are completely empty
-    clean_df = clean_df.dropna(how='all', axis='columns')
+    if len(clean_df) > 300:
+        clean_df = clean_df.dropna(subset=['redacted', 'domain_name'])
+        # drop any columns that are completely empty
+        clean_df = clean_df.dropna(how='all', axis='columns')
     # Clean country
     clean_df['country'] = clean_df.country.fillna("zz")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
     print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
-    for col_list in [creation_date_cols, updated_date_cols, expiration_date_cols]:
+    for col_list in [creation_date_cols_list, updated_date_cols_list, expiration_date_cols_list]:
         for col in col_list:
             if col in clean_df.columns.tolist():
                 clean_df[col] = clean_df[col].apply(clean_dates)
             else:
                 col_list.remove(col)
     #remove weird cols that don't get removed
-    if 'creation_date_4' in creation_date_cols and 'creation_date_4' not in clean_df.columns.tolist():
-        creation_date_cols.remove('creation_date_4')
+    for col in creation_date_cols.split():
+        if col in creation_date_cols_list and col not in clean_df.columns.tolist():
+            creation_date_cols_list.remove(col)
     clean_df['days_between_creations'] = pd.NA
     clean_df = clean_df.apply(set_creation_date, axis=1)
     #creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
     #creation_date_cols_to_drop.remove(creation_date_cols[0])
-    if creation_date_cols[0] != 'creation_date':
-        clean_df['creation_date'] = clean_df[creation_date_cols[0]]
-        clean_df = clean_df.drop(columns=creation_date_cols[0])
-    clean_df = clean_df.drop(columns=creation_date_cols[1:])
+    if creation_date_cols_list[0] != 'creation_date':
+        clean_df['creation_date'] = clean_df[creation_date_cols_list[0]]
+        clean_df = clean_df.drop(columns=creation_date_cols_list[0])
+    clean_df = clean_df.drop(columns=creation_date_cols_list[1:])
     clean_df['days_since_creation'] = clean_df.creation_date.apply(calc_days_since)
     clean_df['days_between_updates'] = pd.NA
-    if 'updated_date_4' in updated_date_cols and 'updated_date_4' not in clean_df.columns.tolist():
-        updated_date_cols.remove('updated_date_4')
-    if 'updated_date_2' in updated_date_cols and 'updated_date_2' not in clean_df.columns.tolist():
-        updated_date_cols.remove('updated_date_2')
+    for col in updated_date_cols.split():
+        if col in updated_date_cols_list and col not in clean_df.columns.tolist():
+            updated_date_cols_list.remove(col)
     clean_df = clean_df.apply(set_updated_date, axis=1)
     #updated_date_cols_to_drop = copy.deepcopy(updated_date_cols)
     #updated_date_cols_to_drop.remove(updated_date_cols[0])
-    if updated_date_cols[0] != 'updated_date':
-        clean_df['updated_date'] = clean_df[updated_date_cols[0]]
-        clean_df = clean_df.drop(columns=updated_date_cols[0])
-    clean_df = clean_df.drop(columns=updated_date_cols[1:])
+    if updated_date_cols_list[0] != 'updated_date':
+        clean_df['updated_date'] = clean_df[updated_date_cols_list[0]]
+        clean_df = clean_df.drop(columns=updated_date_cols_list[0])
+    clean_df = clean_df.drop(columns=updated_date_cols_list[1:])
     clean_df['days_since_update'] = clean_df.updated_date.apply(calc_days_since)
+    for col in expiration_date_cols.split():
+        if col in expiration_date_cols_list and col not in clean_df.columns.tolist():
+            expiration_date_cols_list.remove(col)
     clean_df = clean_df.apply(set_expiration_date, axis=1)
     #expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
     #expiration_date_cols_to_drop.remove(expiration_date_cols[0])
-    if expiration_date_cols[0] != 'expiration_date':
-        clean_df['expiration_date'] = clean_df[expiration_date_cols[0]]
-        clean_df = clean_df.drop(columns=expiration_date_cols[0])
-    clean_df = clean_df.drop(columns=expiration_date_cols[1:])
+    if expiration_date_cols_list[0] != 'expiration_date':
+        clean_df['expiration_date'] = clean_df[expiration_date_cols_list[0]]
+        clean_df = clean_df.drop(columns=expiration_date_cols_list[0])
+    clean_df = clean_df.drop(columns=expiration_date_cols_list[1:])
     clean_df['days_until_expiration'] = clean_df.expiration_date.apply(
         lambda dt: pd.NA if pd.isna(dt) else (dt - pd.Timestamp.today().date()).days
     )
@@ -370,10 +391,11 @@ def clean_data(df):
     clean_df['main_name_server_domain'] = clean_df.apply(find_main_ns_domain, axis=1)
     # Process Status
     clean_df = clean_df.apply(mark_status_flags, axis=1)
-    status_cols = get_status_cols()
-    if 'status' not in clean_df.columns.tolist():
-        status_cols.remove('status')
-    clean_df = clean_df.drop(columns=status_cols)
+    status_cols_list = get_status_cols()
+    for col in static_status_cols.split():
+        if col in status_cols_list and col not in clean_df.columns.tolist():
+            status_cols_list.remove(col)
+    clean_df = clean_df.drop(columns=status_cols_list)
     # Process Registrant Contact Name
     if 'registrant_contact_name' in clean_df.columns.tolist():
         clean_df['registrant_contact_name'] = np.where(clean_df['registrant_contact_name'].isnull(), 0, 1)
@@ -381,6 +403,8 @@ def clean_data(df):
         clean_df['registrant_contact_name'] = 0
     clean_df['registrar'] = clean_df.registrar.fillna('REGISTRAR_NAN').apply(str.lower)
     # Process dnssec
+    if 'dnssec' not in clean_df.columns.tolist():
+        clean_df['dnssec'] = pd.NA
     clean_df['dnssec'] = clean_df.dnssec.apply(clean_dnssec).apply(str.lower)
     # Process emails
     clean_df['num_emails'] = clean_df.apply(count_emails, axis=1)

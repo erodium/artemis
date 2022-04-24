@@ -9,6 +9,7 @@ from src.scripts.generate_entropy_data import generate_shannon_entropy_score
 from joblib import load
 import src.scripts.artemis_data as artemis_data
 import os.path as osp
+from src.scripts.dga.dga_functions import dga_prediction
 
 HERE = osp.dirname(osp.abspath(__file__))
 
@@ -48,7 +49,8 @@ def predict(domain, verbose=False):
     dns_data = {domain: dns}
     dns_df = pd.DataFrame([artemis_data.change_ip_data(dns_data)])
     merged_df = whois_df.merge(dns_df, on='domain')
-    merged_df['entropy'] = generate_shannon_entropy_score(domain, verbose)
+    entropy = generate_shannon_entropy_score(domain, verbose)
+    merged_df['entropy'] = entropy
     if verbose:
         click.echo(merged_df.iloc[0])
     cleaned_df = artemis_data.clean_data(merged_df)
@@ -101,6 +103,7 @@ def predict(domain, verbose=False):
     c_df.index = encoded_df.index
     for col in cols:
         encoded_df[col] = c_df.iloc[0][col]
+    encoded_df['dga_probability'] = dga_prediction(domain, entropy)
     clf = load(HERE + "/../../models/rfc.joblib")
     col_order = clf.feature_names_in_
     final_df = encoded_df[col_order]

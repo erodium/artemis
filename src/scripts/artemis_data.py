@@ -334,23 +334,26 @@ def clean_data(df):
         # drop any columns that are completely empty
         clean_df = clean_df.dropna(how='all', axis='columns')
     # Clean country
+    if 'country' not in clean_df.columns:
+        clean_df['country'] = pd.NA
     clean_df['country'] = clean_df.country.fillna("zz")  # ZZ is no country
     clean_df['country'] = clean_df.country.apply(clean_country)
-    print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
+    if len(bad_countries) > 0:
+        print(f"{len(bad_countries)} records had countries that are ambiguous: {bad_countries}")
     for col_list in [creation_date_cols_list, updated_date_cols_list, expiration_date_cols_list]:
         for col in col_list:
             if col in clean_df.columns.tolist():
                 clean_df[col] = clean_df[col].apply(clean_dates)
             else:
                 col_list.remove(col)
-    #remove weird cols that don't get removed
+    # remove weird cols that don't get removed
     for col in creation_date_cols.split():
         if col in creation_date_cols_list and col not in clean_df.columns.tolist():
             creation_date_cols_list.remove(col)
     clean_df['days_between_creations'] = pd.NA
     clean_df = clean_df.apply(set_creation_date, axis=1)
-    #creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
-    #creation_date_cols_to_drop.remove(creation_date_cols[0])
+    # creation_date_cols_to_drop = copy.deepcopy(creation_date_cols)
+    # creation_date_cols_to_drop.remove(creation_date_cols[0])
     if creation_date_cols_list[0] != 'creation_date':
         clean_df['creation_date'] = clean_df[creation_date_cols_list[0]]
         clean_df = clean_df.drop(columns=creation_date_cols_list[0])
@@ -361,8 +364,8 @@ def clean_data(df):
         if col in updated_date_cols_list and col not in clean_df.columns.tolist():
             updated_date_cols_list.remove(col)
     clean_df = clean_df.apply(set_updated_date, axis=1)
-    #updated_date_cols_to_drop = copy.deepcopy(updated_date_cols)
-    #updated_date_cols_to_drop.remove(updated_date_cols[0])
+    # updated_date_cols_to_drop = copy.deepcopy(updated_date_cols)
+    # updated_date_cols_to_drop.remove(updated_date_cols[0])
     if updated_date_cols_list[0] != 'updated_date':
         clean_df['updated_date'] = clean_df[updated_date_cols_list[0]]
         clean_df = clean_df.drop(columns=updated_date_cols_list[0])
@@ -372,8 +375,8 @@ def clean_data(df):
         if col in expiration_date_cols_list and col not in clean_df.columns.tolist():
             expiration_date_cols_list.remove(col)
     clean_df = clean_df.apply(set_expiration_date, axis=1)
-    #expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
-    #expiration_date_cols_to_drop.remove(expiration_date_cols[0])
+    # expiration_date_cols_to_drop = copy.deepcopy(expiration_date_cols)
+    # expiration_date_cols_to_drop.remove(expiration_date_cols[0])
     if expiration_date_cols_list[0] != 'expiration_date':
         clean_df['expiration_date'] = clean_df[expiration_date_cols_list[0]]
         clean_df = clean_df.drop(columns=expiration_date_cols_list[0])

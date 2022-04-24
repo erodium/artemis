@@ -43,7 +43,8 @@ def resolve_ip_data(domain_data, verbose):
     domain_name = list(domain_data.keys())[0]
     results = {}
     for record_type in domain_data[domain_name]:
-        print("Checking record type:", record_type, "for", domain_data[domain_name])
+        if verbose:
+            print("Checking record type:", record_type, "for", domain_data[domain_name])
         ip_address = domain_data[domain_name][record_type]["IP"]
         if ip_address != "NA":
             if verbose:
